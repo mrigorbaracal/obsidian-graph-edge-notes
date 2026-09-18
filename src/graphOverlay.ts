@@ -290,13 +290,27 @@ export class GraphOverlayController {
     const rawLabel = label.relation.label;
     const isDynamic = rawLabel && rawLabel.startsWith("=");
 
-    if (isDynamic && label.relation.sourceFrontmatter) {
-      const ctx = { frontmatter: label.relation.sourceFrontmatter };
-      const result = evaluateLabel(rawLabel, ctx);
-      label.labelEl.setText(result.error ? `⚠️ ${result.text}` : result.text);
-      label.isDynamic = true;
-      if (result.error) {
-        console.warn(`[Graph Edge Notes] Expressão inválida em ${label.relation.sourcePath}: ${result.error}`);
+    if (isDynamic) {
+      let frontmatter = label.relation.sourceFrontmatter;
+      if (!frontmatter) {
+        const sourcePath = label.relation.sourcePath;
+        const sourceFile = this.plugin.app.vault.getMarkdownFiles().find(f => f.path === sourcePath);
+        if (sourceFile) {
+          const cache = this.plugin.app.metadataCache.getFileCache(sourceFile);
+          frontmatter = cache?.frontmatter;
+        }
+      }
+      if (frontmatter) {
+        const ctx = { frontmatter };
+        const result = evaluateLabel(rawLabel, ctx);
+        label.labelEl.setText(result.error ? `⚠️ ${result.text}` : result.text);
+        label.isDynamic = true;
+        if (result.error) {
+          console.warn(`[Graph Edge Notes] Expressão inválida em ${label.relation.sourcePath}: ${result.error}`);
+        }
+      } else {
+        label.labelEl.setText(`⚠️ (sem frontmatter)`);
+        label.isDynamic = true;
       }
     } else {
       label.labelEl.setText(rawLabel);
