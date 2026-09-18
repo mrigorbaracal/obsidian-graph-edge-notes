@@ -1,6 +1,6 @@
-# Graph Edge Notes
+# Graph Edge Notes (Dynamic Fork)
 
-Graph Edge Notes is an Obsidian plugin that overlays short relationship labels on graph-view edges.
+Fork do plugin [obsidian-graph-edge-notes](https://github.com/li-zane/obsidian-graph-edge-notes) com suporte a expressões dinâmicas nos labels das arestas.
 
 ## Demo
 
@@ -14,42 +14,67 @@ Graph Edge Notes is an Obsidian plugin that overlays short relationship labels o
 
 ## What it does
 
-- Reads note-to-note relations from frontmatter.
-- Renders each relation label on the matching graph edge.
-- Shows optional detail text when you hover a label.
-- Adds a command to create a new relation for the current note.
-- Supports a plugin-level default label color.
-- Includes an optional debug panel that shows recent plugin actions and the current graph binding state.
-- When debug mode is enabled, the plugin also writes recent debug events to `.obsidian/plugins/graph-edge-notes/debug.log` and removes that file again when debug mode is turned off.
+- Reads note-to-note relations from frontmatter
+- Renders each relation label on the matching graph edge
+- Supports JavaScript expressions for dynamic labels
+- Shows optional detail text when you hover a label
+- Adds a command to create a new relation for the current note
+- Supports a plugin-level default label color
+- Debug panel for development
 
 ## Frontmatter format
 
+### String format (original)
 ```yaml
 relations:
   - '("limited-open")[[Open]]("finite-population open model")'
   - '("gossip")[[Communication]]'
 ```
 
-The command palette editor currently saves relations in the string form above.
-
-Object-style YAML is also accepted when reading existing notes:
-
+### Object format (also supported)
 ```yaml
-relation:
+relations:
   - target: "[[Open]]"
     label: "limited-open"
     detail: "finite-population open model"
 ```
 
-`label` is what appears on the edge. `detail` is optional and appears in the hover tooltip.
+### Dynamic expressions (new!)
 
-The frontmatter property name is configurable in plugin settings. In the examples above, `relations` and `relation` are both valid if your plugin setting is configured to match that property name.
+Labels starting with `=` are evaluated as JavaScript using frontmatter properties:
 
-## Important limitation
+```yaml
+relations:
+  - '("={{valor}}")[[Target]]("Valor dinâmico")'
+  - '("={{valor * 1.1}}")[[Target]]('com 10% de juros')'
+  - '("={{a + b}}")[[Target]]('soma de campos')'
+```
 
-The plugin annotates edges that already exist in Obsidian's graph. It does not create new graph edges by itself. In practice, this means the two notes still need to be linked somewhere in the vault for an edge to appear.
+### Template syntax
 
-Rendered labels show relation detail on hover. Edit relations through the command palette command **Add graph relation to current note** or by editing frontmatter directly.
+You can also use `{{...}}` blocks inside the label:
+
+```yaml
+relations:
+  - '("=Total: {{valor + taxa}} R$")[[Target]]'
+```
+
+## Security note
+
+⚠️ Expressions are evaluated using `new Function()` with access to frontmatter properties. This is by-design and safe because:
+1. Your Vault is local — only your notes are evaluated
+2. Expressions only read frontmatter, they don't modify anything
+3. No network access or file system operations are available
+
+## Dynamic labels behavior
+
+| Scenario | Result |
+|----------|--------|
+| Label without `=` | Rendered as-is (static) |
+| Label with `={{expr}}` | Evaluated using frontmatter |
+| Empty result after eval | Label hidden (no text) |
+| Syntax error in expression | Shows `⚠️` prefix + original text |
+| Frontmatter field missing | Shows `undefined` in label |
 
 ## Development
 
@@ -59,9 +84,12 @@ npm run build
 ```
 
 To test in a vault, copy `main.js`, `manifest.json`, and `styles.css` into:
-
-```text
-<Vault>/.obsidian/plugins/graph-edge-notes/
+```
+<Vault>/.obsidian/plugins/graph-edge-notes-dynamic/
 ```
 
-Then reload Obsidian and enable **Graph Edge Notes** under **Settings -> Community plugins**.
+Then reload Obsidian and enable **Graph Edge Notes (Dynamic)** under **Settings → Community plugins**.
+
+---
+
+Original plugin by [@li-zane](https://github.com/li-zane) | Fork maintained by Igor Barros

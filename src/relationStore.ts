@@ -123,7 +123,8 @@ export class RelationStore {
       return [];
     }
 
-    const frontmatter = this.app.metadataCache.getFileCache(sourceFile)?.frontmatter;
+    const cache = this.app.metadataCache.getFileCache(sourceFile);
+    const frontmatter = cache?.frontmatter;
     const rawRelations = frontmatter?.[this.getRelationPropertyName()];
     if (!Array.isArray(rawRelations)) {
       return [];
@@ -138,7 +139,10 @@ export class RelationStore {
       }
 
       if (parsed.targetPath === targetPath) {
-        result.push(parsed);
+        result.push({
+          ...parsed,
+          sourceFrontmatter: frontmatter as Record<string, any>
+        });
       }
     });
 
@@ -167,7 +171,7 @@ export class RelationStore {
 
   private parseStringRelation(rawRelation: string, sourcePath: string, index: number): ResolvedRelation | null {
     const value = rawRelation.trim();
-    const match = /^\("((?:[^"\\]|\\.)*)"\)\s*\[\[([^\]]+)\]\]\s*(?:\("((?:[^"\\]|\\.)*)"\)|<\("((?:[^"\\]|\\.)*)"\)>)?$/u.exec(value);
+    const match = /^\("((?:[^"\\]|\\.)*)"\)\s*\[\[([^\]]+)\]\]\s*(?:\("((?:[^"\\]|\\.)*)"\)|<\("((?:[^"\\]|\\.)*"\)>))?$/u.exec(value);
     if (!match) {
       return null;
     }
@@ -233,8 +237,8 @@ export class RelationStore {
       throw new Error(`Could not resolve target note: ${cleanTarget}`);
     }
 
-    const base = `("${this.encodeRelationText(label)}")[[${cleanTarget}]]`;
-    return detail ? `${base}("${this.encodeRelationText(detail)}")` : base;
+    const base = `(\"${this.encodeRelationText(label)}\")[[${cleanTarget}]]`;
+    return detail ? `${base}(\"${this.encodeRelationText(detail)}\")` : base;
   }
 
   private getMutableRelationsArray(frontmatter: FrontmatterRecord): Array<string | FrontmatterRecord> {

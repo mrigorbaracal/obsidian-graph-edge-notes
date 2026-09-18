@@ -1,9 +1,9 @@
 {
-  "id": "graph-edge-notes",
-  "name": "Graph Edge Notes",
-  "version": "0.3.2",
+  "id": "graph-edge-notes-dynamic",
+  "name": "Graph Edge Notes (Dynamic)",
+  "version": "0.4.0",
   "minAppVersion": "1.5.0",
-  "description": "Display and edit short relationship labels on graph edges.",
-  "author": "zane",
+  "description": "Display and edit short relationship labels on graph edges with JavaScript expression support.",
+  "author": "Igor Barros (fork from zane)",
   "isDesktopOnly": false
 }

@@ -2,6 +2,7 @@ import { FederatedPointerEvent, Graphics } from "pixi.js";
 import { InternalGraphLink, InternalGraphRenderer } from "./graphTypes";
 import type GraphEdgeNotesPlugin from "./main";
 import { ResolvedRelation } from "./types";
+import { evaluateLabel } from "./expression";
 
 interface RenderedRelationLabel {
   id: string;
@@ -12,6 +13,7 @@ interface RenderedRelationLabel {
   labelEl: HTMLDivElement;
   widthPx: number;
   heightPx: number;
+  isDynamic: boolean;
 }
 
 interface HighlightedNodeState {
@@ -245,7 +247,6 @@ export class GraphOverlayController {
     };
 
     const labelEl = overlay.createDiv({ cls: "graph-edge-notes-label" });
-    labelEl.setText(relation.label);
     labelEl.dataset.relationKey = id;
     labelEl.addEventListener("pointerenter", (event) => {
       handleLabelPointerOver(this.createSyntheticPointerEvent(event));
@@ -276,10 +277,50 @@ export class GraphOverlayController {
       totalOnEdge,
       labelEl,
       widthPx: 0,
-      heightPx: 0
+      heightPx: 0,
+      isDynamic: false
     };
+
+    this.applyLabelText(renderedLabel);
     this.applyLabelAppearance(renderedLabel, renderer);
     return renderedLabel;
+  }
+
+  private applyLabelText(label: RenderedRelationLabel): void {
+    const rawLabel = label.relation.label;
+    const isDynamic = rawLabel && rawLabel.startsWith("=");
+
+    if (isDynamic && label.relation.sourceFrontmatter) {
+      const ctx = { frontmatter: label.relation.sourceFrontmatter };
+      const result = evaluateLabel(rawLabel, ctx);
+      label.labelEl.setText(result.error ? `⚠️ ${result.text}` : result.text);
+      label.isDynamic = true;
+      if (result.error) {
+        console.warn(`[Graph Edge Notes] Expressão inválida em ${label.relation.sourcePath}: ${result.error}`);
+      }
+    } else {
+      label.labelEl.setText(rawLabel);
+      label.isDynamic = false;
+    }
+
+    if (!label.labelEl.textContent || label.labelEl.textContent.trim() === "") {
+      label.labelEl.style.display = "none";
+    } else {
+      label.labelEl.style.display = "";
+    }
+  }
+
+  updateDynamicLabels(filePath: string): void {
+    let updated = false;
+    this.labels.forEach((label) => {
+      if (label.relation.sourcePath === filePath && label.isDynamic) {
+        this.applyLabelText(label);
+        updated = true;
+      }
+    });
+    if (updated) {
+      this.plugin.debugLog(`Updated dynamic labels for ${filePath}`);
+    }
   }
 
   private updateLabelPositions(): void {
@@ -877,5 +918,4 @@ export class GraphOverlayController {
         typeof maybeRenderer.scale === "number"
     );
   }
-
 }

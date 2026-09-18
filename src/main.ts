@@ -17,6 +17,7 @@ export default class GraphEdgeNotesPlugin extends Plugin {
   private debugLogs: string[] = [];
   private debugFlushTimer: number | null = null;
   private readonly debugLogPath = `.obsidian/plugins/graph-edge-notes/debug.log`;
+  private metadataChangeDebounce = new Map<string, number>();
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -167,8 +168,8 @@ export default class GraphEdgeNotesPlugin extends Plugin {
     );
 
     this.registerEvent(
-      this.app.metadataCache.on("changed", () => {
-        this.refreshGraphOverlay("metadata changed", false);
+      this.app.metadataCache.on("changed", (file) => {
+        this.handleMetadataChange(file);
       })
     );
 
@@ -199,6 +200,27 @@ export default class GraphEdgeNotesPlugin extends Plugin {
     this.registerDomEvent(document, "pointerleave", () => {
       this.overlay.handleGlobalPointerLeave();
     });
+  }
+
+  private handleMetadataChange(file: TFile): void {
+    const path = file.path;
+    
+    // Debounce: cancela timeout anterior se existir
+    const existing = this.metadataChangeDebounce.get(path);
+    if (existing !== undefined) {
+      window.clearTimeout(existing);
+    }
+    
+    // Novo timeout de 300ms
+    const timeout = window.setTimeout(() => {
+      this.metadataChangeDebounce.delete(path);
+      this.overlay.updateDynamicLabels(path);
+    }, 300);
+    
+    this.metadataChangeDebounce.set(path, timeout);
+    
+    // Também faz rebuild normal para outros casos
+    this.refreshGraphOverlay("metadata changed", false);
   }
 
   private ensureDebugPanel(): void {

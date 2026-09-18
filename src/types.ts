@@ -10,6 +10,7 @@ export interface ResolvedRelation extends RelationInput {
   targetDisplay: string;
   index: number;
   key: string;
+  sourceFrontmatter?: Record<string, any>;
 }
 
 export interface GraphEdgeNotesSettings {
