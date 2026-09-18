@@ -290,25 +290,35 @@ export class GraphOverlayController {
     const rawLabel = label.relation.label;
     const isDynamic = rawLabel && rawLabel.startsWith("=");
 
+    console.log(`[Graph Edge Notes DEBUG] applyLabelText: "${rawLabel}", isDynamic: ${isDynamic}`);
+
     if (isDynamic) {
       let frontmatter = label.relation.sourceFrontmatter;
+      console.log(`[Graph Edge Notes DEBUG] sourceFrontmatter from relation:`, frontmatter);
+      
       if (!frontmatter) {
         const sourcePath = label.relation.sourcePath;
+        console.log(`[Graph Edge Notes DEBUG] Looking for file: ${sourcePath}`);
         const sourceFile = this.plugin.app.vault.getMarkdownFiles().find(f => f.path === sourcePath);
+        console.log(`[Graph Edge Notes DEBUG] Found file:`, sourceFile?.path);
         if (sourceFile) {
           const cache = this.plugin.app.metadataCache.getFileCache(sourceFile);
           frontmatter = cache?.frontmatter;
+          console.log(`[Graph Edge Notes DEBUG] frontmatter from cache:`, frontmatter);
         }
       }
+      
       if (frontmatter) {
         const ctx = { frontmatter };
         const result = evaluateLabel(rawLabel, ctx);
+        console.log(`[Graph Edge Notes DEBUG] evaluateLabel result:`, result);
         label.labelEl.setText(result.error ? `⚠️ ${result.text}` : result.text);
         label.isDynamic = true;
         if (result.error) {
           console.warn(`[Graph Edge Notes] Expressão inválida em ${label.relation.sourcePath}: ${result.error}`);
         }
       } else {
+        console.log(`[Graph Edge Notes DEBUG] No frontmatter found!`);
         label.labelEl.setText(`⚠️ (sem frontmatter)`);
         label.isDynamic = true;
       }

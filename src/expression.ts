@@ -1,6 +1,5 @@
 /**
  * Motor de expressões dinâmicas para labels de arestas.
- * Permite usar JavaScript no campo label das relações.
  */
 
 export interface EvalContext {
@@ -20,7 +19,18 @@ function evaluateTemplate(raw: string, ctx: EvalContext): string {
   
   while ((match = regex.exec(raw)) !== null) {
     const expr = match[1]?.trim() ?? '';
-    const value = evaluateExpression(expr, ctx);
+    let value = evaluateExpression(expr, ctx);
+    
+    // Se for string numérica, converte para número
+    if (typeof value === 'string' && value !== '' && !isNaN(Number(value))) {
+      value = Number(value);
+    }
+    
+    // Formata números com separador de milhar
+    if (typeof value === 'number') {
+      value = value.toLocaleString('pt-BR');
+    }
+    
     result = result.replace(`{{${expr}}}`, String(value));
   }
   
@@ -29,8 +39,23 @@ function evaluateTemplate(raw: string, ctx: EvalContext): string {
 
 function evaluateExpression(expr: string, ctx: EvalContext): any {
   try {
-    const fn = new Function('props', '"use strict"; return (' + expr + ');');
-    return fn(ctx.frontmatter);
+    const props = ctx.frontmatter;
+    
+    // Converte valores string para número quando possível
+    const processedProps: Record<string, any> = {};
+    for (const [key, value] of Object.entries(props)) {
+      if (typeof value === 'string' && !isNaN(Number(value)) && value !== '') {
+        processedProps[key] = Number(value);
+      } else {
+        processedProps[key] = value;
+      }
+    }
+    
+    const fn = new Function(
+      ...Object.keys(processedProps),
+      '"use strict"; return (' + expr + ');'
+    );
+    return fn(...Object.values(processedProps));
   } catch (e) {
     console.warn(`[Graph Edge Notes] Erro ao avaliar expressão: ${expr}`, e);
     return undefined;

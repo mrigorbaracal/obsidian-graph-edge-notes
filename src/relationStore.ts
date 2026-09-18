@@ -171,7 +171,7 @@ export class RelationStore {
 
   private parseStringRelation(rawRelation: string, sourcePath: string, index: number): ResolvedRelation | null {
     const value = rawRelation.trim();
-    const match = /^\("((?:[^"\\]|\\.)*)"\)\s*\[\[([^\]]+)\]\]\s*(?:\("((?:[^"\\]|\\.)*)"\)|<\("((?:[^"\\]|\\.)*"\)>))?$/u.exec(value);
+    const match = /^\(\s*"([^"]*)"\s*\)\s*\[\[([^\]]+)\]\]\s*(?:\(\s*"([^"]*)"\s*\))?$/.exec(value);
     if (!match) {
       return null;
     }
